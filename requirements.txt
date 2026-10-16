@@ -1,0 +1,6 @@
+openai>=2.0
+psycopg[binary]>=3.2
+pgvector>=0.3
+python-dotenv>=1.0
+pyyaml>=6.0
+rich>=13.0
