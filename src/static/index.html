@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Vectra KB assistant</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <span class="logo">VX</span>
+      <div>
+        <h1>Vectra Logistics - IT service desk assistant</h1>
+        <p>answer(question) &rarr; { answer, citations, abstained } &middot; grounded in 7 current KB articles &middot; deprecated/unverified docs can never be served</p>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="samples" id="samples">
+      <span class="label">Try:</span>
+      <!-- chips injected by app.js -->
+    </section>
+
+    <section id="chat" class="chat" aria-live="polite">
+      <div class="empty">
+        <h2>Ask anything from the IT knowledge base</h2>
+        <p>Pick a sample above or type your own question. Answers always show
+        which KB article they came from, and if the KB cannot answer you get an
+        honest <strong>abstain + raise a ticket</strong> instead of an invention.</p>
+      </div>
+    </section>
+
+    <form id="ask-form" class="askbox">
+      <input id="q" autocomplete="off" placeholder="e.g. ZenTunnel shows error ZT-401, what do I do?" />
+      <button type="submit" id="ask-btn">Ask</button>
+    </form>
+    <p class="foot">
+      PII typed here (emails, +91 numbers) is masked to <code>[email redacted]</code> /
+      <code>[phone redacted]</code> <em>before</em> anything is logged or sent to OpenAI.
+    </p>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

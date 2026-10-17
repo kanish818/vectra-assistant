@@ -17,6 +17,16 @@ two phone-escalation rules. See [`docs/eval_report.md`](docs/eval_report.md)
 and the raw outputs behind every verdict in
 [`docs/eval_results.json`](docs/eval_results.json).
 
+The same `answer()` also powers a chat UI (served by a thin FastAPI wrapper):
+
+| Grounded answer with citation | Honest abstain (parking pass) |
+|---|---|
+| ![Grounded answer with KB-007 citation and retrieval trace](docs/images/ui_answer_citation.png) | ![Abstain banner for a question the KB cannot answer](docs/images/ui_abstain.png) |
+
+| PII masked before OpenAI | Injection defeated (KB-099 payload) |
+|---|---|
+| ![Anand's email and phone masked before any OpenAI call](docs/images/ui_pii_masked.png) | ![Laptop-slow question abstains instead of the injected advice](docs/images/ui_injection_safe.png) |
+
 ---
 
 ## Architecture
@@ -62,6 +72,11 @@ Every step in boxes 1 and 5 is deterministic Python (regex + keyword rules), so
 the guarantees hold even if the model misbehaves. The prompt-level controls are
 the first line of defence, not the only one.
 
+`demo.py` (terminal) and `src/api.py` (browser UI) are both thin callers of the
+same `answer()` - the UI holds no AI logic, it only renders what
+`answer_with_details()` returns (answer, citations, abstained, retrieval trace,
+guardrail warnings).
+
 ## Quick start
 
 ```bash
@@ -71,9 +86,14 @@ cp .env.example .env                              # then paste your OpenAI key
 
 python -m src.ingest                              # 9 articles -> 9 chunks
 python -m evals.run_evals                         # the 12-case scorecard
-python demo.py --samples                          # 5 official questions, live
+python demo.py --samples                          # terminal demo (5 questions)
 python demo.py                                    # interactive loop
+
+uvicorn src.api:app                               # browser UI on localhost:8000
 ```
+
+`scripts/capture_ui.ps1` regenerates the four screenshots above with headless
+Edge (it drives the UI through `?q=<question>`, which auto-asks on load).
 
 ## The design decisions (and why)
 
@@ -164,7 +184,8 @@ Curated list from [`docs/eval_report.md`](docs/eval_report.md):
 
 - Live status-flip test: mark KB-003 `deprecated` mid-run and show retrieval
   excludes it without redeploy.
-- Streamlit chat UI with side-by-side citation rendering.
+- Multi-turn memory: follow-up questions like "and what if that doesn't fix it?"
+  currently treat every turn as fresh.
 - CI job running `evals/run_evals.py` on every prompt/KB change (the "evals
   gate" the brief hints at for go-live).
 
@@ -173,17 +194,22 @@ Curated list from [`docs/eval_report.md`](docs/eval_report.md):
 ```
 vectra-assistant/
 |-- docker-compose.yml        Postgres 16 + pgvector (pgvector/pgvector:pg16)
-|-- demo.py                   interactive loop (--samples for the 5 questions)
+|-- demo.py                   interactive terminal loop (--samples for 5 questions)
 |-- kb/                       the 9 knowledge-base articles
 |-- src/
 |   |-- config.py             env loading; fails fast without a key
 |   |-- ingest.py             frontmatter parsing, splitting, embedding, upsert
 |   |-- answer.py             answer(question) - retrieve + ground + abstain
-|   `-- guardrails.py         mask_pii / unsafe advice / escalation / sanitize
+|   |-- guardrails.py         mask_pii / unsafe advice / escalation / sanitize
+|   |-- api.py                thin FastAPI wrapper: POST /api/ask + static UI
+|   `-- static/               index.html / style.css / app.js (no build step)
+|-- scripts/
+|   `-- capture_ui.ps1        regenerates docs/images/*.png via headless Edge
 |-- evals/
 |   |-- cases.yaml            the 12 cases incl. the traps and tricky spots
 |   `-- run_evals.py          runner -> terminal table + docs/eval_report.md
 |-- docs/
+|   |-- images/               the four UI screenshots shown above
 |   |-- eval_report.md        generated scorecard (committed)
 |   |-- eval_results.json     raw outputs behind every verdict (committed)
 |   `-- video_script.md       3-minute walkthrough script
